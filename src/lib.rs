@@ -93,7 +93,7 @@ impl LogAnywhereLogger {
 pub struct LogAnywhereRecord {
     level: String,
     message: String,
-    file: String,
+    file: Option<String>,
     line: Option<u32>
 }
 
@@ -102,14 +102,19 @@ unsafe impl Send for LogAnywhereLogger {}
 
 impl Log for LogAnywhereLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        true 
+        true
     }
 
     fn log(&self, record: &log::Record) {
+        let file = match record.file() {
+            Some(f) => Some(f.to_string()),
+            None => None
+        };
+
         let anywhere_log = LogAnywhereRecord {
             level: record.level().to_string(),
             message: record.args().to_string(),
-            file: record.file().unwrap().to_string(),
+            file,
             line: record.line()
         };
         self.log_buffer_records.lock().unwrap().push(anywhere_log);

@@ -462,8 +462,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "logger"
-version = "0.1.0"
+name = "log_anywhere"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "async-trait",
