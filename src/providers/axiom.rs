@@ -1,20 +1,15 @@
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use reqwest::header;
-use serde::{Deserialize, Serialize};
-use anyhow::Result;
-
 use crate::{LogProvider, LogAnywhereRecord};
 use async_trait::async_trait;
 
-use std::sync::{ Arc, Mutex };
-
-pub struct AxiomProvider<'a> {
-    auth_token: &'a str,
-    dataset: &'a str
+pub struct AxiomProvider {
+    auth_token: String,
+    dataset: String
 }
 
-impl<'a> AxiomProvider<'a> {
-    pub fn new(auth_token: &'a str, dataset: &'a str) -> AxiomProvider<'a> {
+impl AxiomProvider {
+    pub fn new(auth_token: String, dataset: String) -> AxiomProvider {
         AxiomProvider {
             auth_token,
             dataset
@@ -23,7 +18,7 @@ impl<'a> AxiomProvider<'a> {
 }
 
 #[async_trait]
-impl<'a> LogProvider for AxiomProvider<'a> {
+impl LogProvider for AxiomProvider {
     async fn send_log(&self, messages: Vec<LogAnywhereRecord>) {
         println!("Logged for Axiom: {:?}", messages);
 
@@ -32,7 +27,7 @@ impl<'a> LogProvider for AxiomProvider<'a> {
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
         let client = reqwest::Client::new();
-        let url = "https://api.axiom.co/v1/datasets/worker_logs/ingest";
+        let url = format!("https://api.axiom.co/v1/datasets/{}/ingest", self.dataset);
         let res = client.post(url)
             .headers(headers)
             .json(&messages)

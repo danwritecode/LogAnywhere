@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 use crate::{LogProvider, LogAnywhereRecord};
 
-pub struct DbProvider<'a> {
-    db_conn: &'a str
+pub struct DbProvider {
+    db_conn: String
 }
 
-impl<'a> DbProvider<'a> {
-    pub fn new() -> DbProvider<'a> {
-        let db_conn = "";
+impl DbProvider {
+    pub fn new() -> DbProvider {
+        let db_conn = "".to_string();
         DbProvider {
             db_conn
         }
@@ -15,7 +15,7 @@ impl<'a> DbProvider<'a> {
 }
 
 #[async_trait]
-impl<'a> LogProvider for DbProvider<'a> {
+impl LogProvider for DbProvider {
     async fn send_log(&self, messages: Vec<LogAnywhereRecord>) {
         println!("DB logged for DB: {:?}", messages);
     }
