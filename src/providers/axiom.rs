@@ -20,8 +20,6 @@ impl AxiomProvider {
 #[async_trait]
 impl LogProvider for AxiomProvider {
     async fn send_log(&self, messages: Vec<LogAnywhereRecord>) {
-        println!("Logged for Axiom: {:?}", messages);
-
         let mut headers = header::HeaderMap::new();
         headers.insert(AUTHORIZATION, format!("Bearer {}", &self.auth_token).parse().unwrap());
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
@@ -32,9 +30,13 @@ impl LogProvider for AxiomProvider {
             .headers(headers)
             .json(&messages)
             .send()
-            .await
-            .unwrap();
+            .await;
 
-        println!("res: {:?}", res.text().await.unwrap());
+        match res {
+            Ok(res) => println!("res: {:?}", res.text().await.unwrap()),
+            Err(e) => {
+                println!("error status: {:?}, error: {:?}", e.status(), e)
+            }
+        }
     }
 }
