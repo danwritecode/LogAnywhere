@@ -3,15 +3,13 @@ pub use crate::providers::prelude::*;
 
 use std::sync::{ Arc, Mutex };
 use std::time::Duration;
-use std::{ mem, panic, thread };
+use std::{ mem, panic };
 
 use log::{Log, SetLoggerError};
 use anyhow::Result;
 use serde::Serialize;
 use async_trait::async_trait;
-use crossbeam::channel;
 
-use tokio::runtime::Runtime;
 use tokio::task;
 use tokio::time::sleep;
 
@@ -24,7 +22,7 @@ pub trait LogProvider: Send + Sync {
 
 
 #[derive(Clone)]
-pub struct LogAnywhereLogger {
+pub struct Logger {
     provider: Arc<dyn LogProvider>,
     log_buffer_records: Arc<Mutex<Vec<LogAnywhereRecord>>>,
     buffer_timing: Arc<u64>,
@@ -70,9 +68,10 @@ fn set_panic_hook (
 ) {
 
     panic::set_hook(Box::new(move |p| {
+        *is_panicking.lock().unwrap() = true;
+        
         eprintln!("{}", p);
         eprintln!("waiting for log_anywhere to cleanup, 1 second please");
-        *is_panicking.lock().unwrap() = true;
 
         let file = p.location().map(|l| l.file().to_string());
         let line = p.location().map(|l| l.line());
@@ -91,7 +90,7 @@ fn set_panic_hook (
     }));
 }
 
-impl LogAnywhereLogger {
+impl Logger {
     /// Initializes the global logger with a LogAnywhereLogger instance.
     ///
     /// ```no_run
@@ -110,7 +109,7 @@ impl LogAnywhereLogger {
         buffer_timing: u64,
         level: log::LevelFilter
     ) -> Self {
-        LogAnywhereLogger {
+        Logger {
             provider,
             log_buffer_records: Arc::new(Mutex::new(Vec::new())),
             buffer_timing: Arc::new(buffer_timing),
@@ -120,7 +119,7 @@ impl LogAnywhereLogger {
         }
     }
 
-    pub fn init(self: Box<Self>) -> Result<(), SetLoggerError> {
+    pub fn init(self: Self) -> Result<(), SetLoggerError> {
         let level_ptr = Arc::clone(&self.level);
 
         // set panic hook
@@ -141,7 +140,9 @@ impl LogAnywhereLogger {
             )
         );
 
-        log::set_boxed_logger(self)?;
+        let boxed_self = Box::new(self);
+
+        log::set_boxed_logger(boxed_self)?;
         log::set_max_level(*level_ptr);
         Ok(())
     }
@@ -155,10 +156,10 @@ pub struct LogAnywhereRecord {
     line: Option<u32>
 }
 
-unsafe impl Sync for LogAnywhereLogger {}
-unsafe impl Send for LogAnywhereLogger {}
+unsafe impl Sync for Logger {}
+unsafe impl Send for Logger {}
 
-impl Log for LogAnywhereLogger {
+impl Log for Logger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
         true
     }

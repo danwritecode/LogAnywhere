@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use reqwest::header;
 use crate::{LogProvider, LogAnywhereRecord};
@@ -9,11 +11,11 @@ pub struct AxiomProvider {
 }
 
 impl AxiomProvider {
-    pub fn new(auth_token: String, dataset: String) -> AxiomProvider {
-        AxiomProvider {
+    pub fn new(auth_token: String, dataset: String) -> Arc<AxiomProvider> {
+        Arc::new(AxiomProvider {
             auth_token,
             dataset
-        }
+        })
     }
 }
 

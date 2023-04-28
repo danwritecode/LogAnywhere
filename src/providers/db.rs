@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use crate::{LogProvider, LogAnywhereRecord};
 
@@ -6,11 +8,11 @@ pub struct DbProvider {
 }
 
 impl DbProvider {
-    pub fn new() -> DbProvider {
+    pub fn new() -> Arc<DbProvider> {
         let db_conn = "".to_string();
-        DbProvider {
+        Arc::new(DbProvider {
             db_conn
-        }
+        })
     }
 }
 
