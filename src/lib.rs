@@ -176,6 +176,8 @@ impl Log for Logger {
             file,
             line: record.line()
         };
+
+        println!("{:?}", anywhere_log);
         self.log_buffer_records.lock().unwrap().push(anywhere_log);
     }
 
