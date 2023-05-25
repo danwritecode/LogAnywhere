@@ -23,7 +23,7 @@ pub trait LogProvider: Send + Sync {
 
 #[derive(Clone)]
 pub struct Logger {
-    provider: Arc<dyn LogProvider>,
+    providers: Vec<Arc<dyn LogProvider>>,
     log_buffer_records: Arc<Mutex<Vec<LogAnywhereRecord>>>,
     buffer_timing: Arc<u64>,
     buffer_emptied_on_panic: Arc<Mutex<bool>>,
@@ -105,12 +105,12 @@ impl Logger {
     /// buffer_timing: LogAnywhereLogger uses a buffer to batch send log messages.
     /// Given this, buffer_timing represents the time between batched shipments of your logs.
     pub fn new(
-        provider: Arc<dyn LogProvider>, 
+        providers: Vec<Arc<dyn LogProvider>>,
         buffer_timing: u64,
         level: log::LevelFilter
     ) -> Self {
         Logger {
-            provider,
+            providers,
             log_buffer_records: Arc::new(Mutex::new(Vec::new())),
             buffer_timing: Arc::new(buffer_timing),
             buffer_emptied_on_panic: Arc::new(Mutex::new(false)),
@@ -129,19 +129,19 @@ impl Logger {
             self.is_panicking.clone()
         );
 
-        // start buffer_loop
-        task::spawn(
-            buffer_loop(
-                self.log_buffer_records.clone(), 
-                self.provider.clone(), 
-                self.buffer_timing.clone(), 
-                self.buffer_emptied_on_panic.clone(), 
-                self.is_panicking.clone()
-            )
-        );
+        for provider in &self.providers {
+            task::spawn(
+                buffer_loop(
+                    self.log_buffer_records.clone(), 
+                    provider.clone(),
+                    self.buffer_timing.clone(), 
+                    self.buffer_emptied_on_panic.clone(), 
+                    self.is_panicking.clone()
+                )
+            );
+        }
 
         let boxed_self = Box::new(self);
-
         log::set_boxed_logger(boxed_self)?;
         log::set_max_level(*level_ptr);
         Ok(())
@@ -177,7 +177,7 @@ impl Log for Logger {
             line: record.line()
         };
 
-        println!("{:?}", anywhere_log);
+        println!("{} | message: {} | line: {:?}", anywhere_log.level, anywhere_log.message, anywhere_log.line);
         self.log_buffer_records.lock().unwrap().push(anywhere_log);
     }
 
