@@ -33,7 +33,7 @@ pub struct Logger {
 
 async fn buffer_loop(
     log_buffer_records: Arc<Mutex<Vec<LogAnywhereRecord>>>, 
-    provider: Arc<dyn LogProvider>, 
+    providers: Vec<Arc<dyn LogProvider>>, 
     buffer_timing: Arc<u64>,
     buffer_emptied_on_panic: Arc<Mutex<bool>>,
     is_panicking: Arc<Mutex<bool>>
@@ -45,7 +45,9 @@ async fn buffer_loop(
         };
 
         if messages.len() > 0 {
-            provider.send_log(messages).await;
+            for provider in &providers {
+                provider.send_log(messages.clone()).await;
+            }
 
             if *is_panicking.lock().unwrap() {
                 println!("panic state detected");
@@ -129,17 +131,15 @@ impl Logger {
             self.is_panicking.clone()
         );
 
-        for provider in &self.providers {
-            task::spawn(
-                buffer_loop(
-                    self.log_buffer_records.clone(), 
-                    provider.clone(),
-                    self.buffer_timing.clone(), 
-                    self.buffer_emptied_on_panic.clone(), 
-                    self.is_panicking.clone()
-                )
-            );
-        }
+        task::spawn(
+            buffer_loop(
+                self.log_buffer_records.clone(), 
+                self.providers.clone(),
+                self.buffer_timing.clone(), 
+                self.buffer_emptied_on_panic.clone(), 
+                self.is_panicking.clone()
+            )
+        );
 
         let boxed_self = Box::new(self);
         log::set_boxed_logger(boxed_self)?;
@@ -148,7 +148,7 @@ impl Logger {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct LogAnywhereRecord {
     pub level: String,
     pub message: String,
