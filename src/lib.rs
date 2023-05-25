@@ -94,11 +94,11 @@ impl Logger {
     /// Initializes the global logger with a LogAnywhereLogger instance.
     ///
     /// ```no_run
-    /// let provider = Arc::new(AxiomProvider::new(token, dataset));
+    /// let mut providers:Vec<Arc<dyn LogProvider>> = vec![];
+    /// providers.push(AxiomProvider::new(token, dataset));
     ///
-    /// let logger = LogAnywhereLogger::new(provider, 5, LevelFilter::Info);
-    /// let boxed_logger = Box::new(logger);
-    /// boxed_logger.init().unwrap();
+    /// let logger = Logger::new(providers, 5, LevelFilter::Info);
+    /// logger.init()?;
     /// ```
     ///
     /// provider: any provider implementing the LogProvider trait. You can create your own. 
@@ -150,10 +150,10 @@ impl Logger {
 
 #[derive(Debug, Serialize)]
 pub struct LogAnywhereRecord {
-    level: String,
-    message: String,
-    file: Option<String>,
-    line: Option<u32>
+    pub level: String,
+    pub message: String,
+    pub file: Option<String>,
+    pub line: Option<u32>
 }
 
 unsafe impl Sync for Logger {}
